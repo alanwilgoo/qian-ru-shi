@@ -1,7 +1,5 @@
-# Obsidian
-.obsidian/workspace.json
-.obsidian/workspace-mobile.json
-.obsidian/cache
+# Obsidian 配置（仅同步笔记，配置可在本地重建）
+.obsidian/
 
 # Trash
 .trash/

@@ -148,7 +148,153 @@ if(open("a.txt", O_RDWR) == -1)
 ![](http://edu.yueqian.com.cn/group1/M00/00/E0/wKgA3V_R5BeAFT4ZAACLDZjTbZg424.png)
 
 
+  - 关键点：
+    
+    - 参数count是读写字节数的愿望值，实际读写成功的字节数由返回值决定。
+    - 读取普通文件时，如果当读到了文件尾，read()会返回0。
+    - 读取管道文件时，如果管道中没有数据，read()默认会阻塞。
+- 读取文件内容：
+    
+
+```
+// 1. 将文件 a.txt 中的内容读出来，并显示到屏幕上
+int fd = open("a.txt", O_RDWR);
+
+char buf[100];
+int n;
+while(1)
+{
+    bzero(buf, 100);
+    n = read(fd, buf, 100); // 每次最多读取100个字节
+
+    if(n == 0) // 读完退出
+        break;
+
+    printf("%s", buf);
+}
+close(fd)
+```
+
+
+
+### **文件的读写位置**
+
+当我们对文件进行读写操作时，系统会为我们记录操作的位置，以便于下次继续进行读写操作的时候，从适当的地方开始。
+
+有几点需要注意：
+
+- 每当open一个文件，系统就会维护一套包括文件操作位置在内的相关信息。
+- 对同一个文件描述符进行读写操作时，使用的同一套文件信息，影响的是同一个位置参数。
+- 对同一个文件的多个不同的文件描述符进行读写操作时，使用的是不同的文件信息，影响的是不同的位置参数，彼此互相之间独立，这往往会导致文件信息的错乱。
+
+  ## 核心概念总结
+
+1. **偏移量独立**：每个 `open` 返回的 fd 有自己的文件偏移量
+    
+2. **数据共享**：多个 fd 操作的是同一个文件，写入会互相影响文件内容
+    
+3. **偏移量不共享**：一个 fd 的 `read/write` 不会改变另一个 fd 的偏移量
   
+  所以：**偏移量跟着 fd 走，文件内容是共享的**
+  
+  
+  示例代码：多次打开得到不同的文件描述符，各自读写操作位置独立
+
+```
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <strings.h>
+
+int main(int argc, char **argv) // ./main a.txt
+{
+    // 假设文件中的原始内容是：abcdefghijk
+    int fd1 = open(argv[1], O_RDWR);
+    int fd2 = open(argv[1], O_RDWR);
+    char buf[100];
+
+    // 读出1个字节，读完后读写操作位置是第2个字节
+    // 此时影响的是fd1，对fd2没有影响
+    bzero(buf, 100);
+    read(fd1, buf, 1);
+    printf("%s\n", buf); // 输出a
+
+    // 写入2个字节，读完后读写操作位置是第3个字节
+    // 与上述读操作没有关系
+    bzero(buf, 100);
+    write(fd2, "xy", 2); // ab被覆盖，原文件变成xycdefghijk
+
+    // 读出3个字节，读完后读写操作位置是第5个字节
+    // 此时影响的是fd1，对fd2没有影响
+    bzero(buf, 100);
+    read(fd1, buf, 3);
+    printf("%s\n", buf); // 输出ycd
+
+    return 0;
+}
+```
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+- 写入文件内容：
+
+```
+// 2. 将键盘输入的内容，写入文件 a.txt
+int fd = open("a.txt", O_RDWR);
+
+char buf[100];
+bzero(buf, 100);
+
+// 从键盘输入数据
+fgets(buf, 100, stdin);
+
+// 将输入的数据写入文件
+write(fd, buf, strlen(buf));
+close(fd);
+```
   
   
   

@@ -239,9 +239,44 @@ int main(int argc, char **argv) // ./main a.txt
   
   
   
+  ### **读写位置的设置**
+
+对文件进行常规的读写操作的时候，系统会自动调整读写位置，以便于让我们顺利地顺序读写文件，但如果有需要，文件的读写位置是可以任意调整的，调整函数接口如下：
+
+![](http://edu.yueqian.com.cn/group1/M00/03/27/wKgP3GB8ILGAFZCxAAAuHR0cFD8872.png?token=null&ts=null)  
+
+- 关键点：
+    1. lseek函数可以将文件位置调整到任意的位置，可以是已有数据的地方，也可以是未有数据的地方，假设调整到文件末尾之后的某个地方，那么文件将会形成所谓“空洞”。
+    2. lseek函数只能对普通文件调整文件位置，不能对管道文件调整。
+    3. lseek函数的返回值是调整后的文件位置距离文件开头的偏移量，单位是字节。
   
-  
-  
+  示例代码：
+
+```
+int main(void)
+{
+    // 假设文件 a.txt 只有一行
+    // 内容如下：
+    //
+    // 1234567890abcde 
+    //
+
+    int fd = open("a.txt", O_RDWR);
+
+    // 读取前面10个阿拉伯数字:
+    char buf[10];
+    read(fd, buf, 10);
+
+    // 将文件位置调整到'c'
+    lseek(fd, 2, SEEK_CUR);
+
+    // 将文件位置调整到'1'
+    lseek(fd, 0, SEEK_SET);
+
+    // 将文件位置调整到'a'
+    lseek(fd, -5, SEEK_END);
+}
+```
   
   
 

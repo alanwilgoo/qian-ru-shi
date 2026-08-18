@@ -279,58 +279,157 @@ int main(void)
 ```
   
   
+## **ioctl()**
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+该函数是沟通应用层和驱动层的有力武器，底层开发人员在为硬件设备编写驱动的时候，常常将某些操作封装为一个函数，并为这些接口提供一个所谓的命令字，应用层开发者可以通过 ioctl() 函数配合命令字，非常迅捷地绕过操作系统中间层层机构直达驱动层，调用对应的功能。
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+从这个意义上讲，函数 ioctl() 像是一个通道，只提供函数调用路径，具体的功能由所谓命令字决定，下面是函数的接口规范说明：
 
-- 写入文件内容：
+![](http://edu.yueqian.com.cn/group1/M00/00/A6/rBJlJmSRjtuAWXz6AAAxkDTto6I662.png?token=null&ts=null)
+
+- 关键点：
+    
+    - request 就是所谓的命令字。
+    - 底层驱动开发者可以自定义命令字。
+    - 对于某些常见的硬件设备的常见功能，系统提供了规范的命令字。
+  
+  
+  - 示例代码：
+    
 
 ```
-// 2. 将键盘输入的内容，写入文件 a.txt
-int fd = open("a.txt", O_RDWR);
+int main(void)
+{
+    // 打开一盏LED灯
+    int led = open("/dev/Led", O_RDWR);
 
-char buf[100];
-bzero(buf, 100);
+    // 通过命令字 LEDOP 及其携带的0/1参数，控制LED灯的亮灭
+    // 此处，LEDOP 是底层开发者自定义的命令字
+    ioctl(led, LEDOP, 1);
+    ioctl(led, LEDOP, 0);
 
-// 从键盘输入数据
-fgets(buf, 100, stdin);
+    // 打开一个摄像头
+    int cam = open("/dev/video0", O_RDWR);
 
-// 将输入的数据写入文件
-write(fd, buf, strlen(buf));
-close(fd);
+    // 通过命令字 VIDIC_STREAMON 及其携带参数 vtype 启动摄像头
+    enum v4l2_buf_type vtype= V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    ioctl(cam, VIDIOC_STREAMON, &vtype);
+}
 ```
   
+  
+  ## **dup() 与 dup2()**
+
+- dup 是英语单词 duplicate 的缩写，意即“复制”。
+- 这两个函数功能类似，都是用来“复制”文件描述符，接口规范如下：
+
+![](http://edu.yueqian.com.cn/group1/M00/00/A6/rBJlJmSRjtuAZqyxAAAqgC0-MUw874.png?token=null&ts=null)
+
+`dup()`会将指定的旧文件描述符 oldfd 复制一份，并返回一个系统当前未用的最小的新文件描述符。注意，此时这新旧两个文件描述符是可以互换的，因为它们本质上指涉的是同一个文件，因此它们共享文件的读写偏移量和文件的状态标签，比如使用lseek()对新文件描述符修改文件偏移量，这个操作会同时影响旧文件描述符oldfd，再如，使用read()对新文件描述符读取文件部分内容后，可以继续对旧文件描述符读取后续内容。
+
+`dup2()`跟`dup()`几乎完全一样，不同的地方在于前者可以指定新文件描述符的具体数值，而不局限于系统当前未用描述符的最小值。这样一来，就可以通过`dup2()`指定一个已用的描述符，来达到重定向文件流的作用。
+
+示例代码：
+
+```
+int main()
+{
+    // 打开文件 a.txt ，获得其文件描述符 fd1
+    // 此处 fd1 就代表了这个文件及其配套的系统资源
+    int fd1 = open("a.txt", O_RDWR);
+
+    // 复制文件描述符 fd1，默认得到最小未用的文件描述符
+    dup(fd1);
+
+    // 复制文件描述符 fd1，并指派为 100
+    dup2(fd1, 100);
+}
+```
+  
+  
+  - 解析：  
+    使用dup函数时，会自动分配当前未用的最小的文件描述符，如上述代码，由于进程默认打开了0、1、2作为标准输入输出，于是 fd1 就是3，新产生的文件描述符就是4，而 dup2 函数可以任意指定文件描述符的数值，如果指定的文件描述符已经有所指代，那么原先指代关系将会被替换。这种情况被称为“重定向”。
+  
+  
+  ##  **fcntl()**
+
+该函数的名字是 file control 的缩写，顾名思义，它可以用来“控制”文件，与 ioctl 类似，此处的 “控制” 含义广泛，具体内容由其第二个参数命令字来决定，fcntl 的接口规范如下：
+
+![](http://edu.yueqian.com.cn/group1/M00/00/A6/rBJlJmSRjtuAZ2jMAAAxIlhWe4Y260.png?token=null&ts=null)
+
+- 关键点：
+    - fcntl 是个变参函数，前两个参数是固定的，后续的参数个数和类型取决于 cmd 的具体数值。
+    - 第二个参数 cmd，称为命令字。
+    - 命令字有很多，常用的如下：
+
+![](http://edu.yueqian.com.cn/group1/M00/00/A6/rBJlJmSRjtuAO8YIAACbzVfB3CU671.png?token=null&ts=null)
+
+从上表可以看出：
+
+1. F_DUPFD的功能与dup( )/dup2( )类似。
+2. 通过F_SETSL/F_GETFL来获取和设置文件status，经常拿来设置文件的阻塞特性。
+3. 通过F_SETOWN/F_GETOWN来获取和设置套接字触发的信号的属主，网络编程中常见
+  
+  
+  
+  ##  **mmap()**
+
+该函数全称是 memory map，意为内存映射，即将某个文件与某块内存关联起来，达到通过操作这块内存来间接操作其所对应的文件的效果。
+
+![](http://edu.yueqian.com.cn/group1/M00/00/A6/rBJlJmSRjtuAcuLfAADMGU0A9NA314.png?token=null&ts=null)
+
+- 关键点：
+    - mmap函数的flags参数是有很多的，上表只罗列了最简单的几个，详细信息请使用 man 手册进行查阅。
+    - mmap函数理论上可以对任意文件进行内存映射，但通常用来映射一些比较特别的设备文件，比如液晶屏LCD。
+
+**注意：**  
+  
+在较旧的Linux内核（如2.6内核）中，可以直接使用mmap()来给LCD设备映射内存，但在较新Linux内核（如4.4内核）中，则需要经由DRM统一管理，不可直接mmap映射显存
+
+  
+  映射普通文件：
+
+```
+int main()
+{
+    // 以只读方式打开一个文件
+    int fd = open("a.txt", O_RDWR);
+
+    // 申请一块大小为1024字节的映射内存，并将之与文件fd相关联
+    char *p = mmap(NULL, 1024, PROT_READ|PROT_WRITE,
+                MAP_SHARED, fd, 0);
+
+    // 将该映射内存的内容打印出来（即其相关联文件fd的内容）
+    printf("%s\n", p);
+
+    // 通过操作内存，间接修改了文件内容
+    p[0] = 'x';
+    printf("%s\n", p);
+    
+    // 解除映射
+    munmap(p, 1024);
+    return 0;
+}
+```
+  
+  
+  注意几点：
+
+1. 使用 mmap 映射内存时，指定的读写权限必须是打开模式的子集。
+2. 映射模式为 MAP_SHARED 时，修改的内容会影响文件。
+3. 映射模式为 MAP_PRIVATE 时，修改的内容不会影响文件。
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
   
   
   

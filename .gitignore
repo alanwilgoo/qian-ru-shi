@@ -11,3 +11,6 @@ desktop.ini
 
 # Logs
 *.log
+
+# Generated merge-conflict report
+/conflict-files-obsidian-git.md

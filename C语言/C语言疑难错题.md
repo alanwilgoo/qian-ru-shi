@@ -65,3 +65,133 @@ A、r    B、w    C、a    D、o
 **答案：**D。
 
 **解析：**r 表示读取，w 表示写入，a 表示追加，都是合法模式。o 不是标准 fopen 文件打开模式。
+
+
+## **统计1至100之间素数的个数**
+
+#include <stdio.h>
+
+int is_prime(int n)
+
+{
+
+    if (n < 2)
+
+    {
+
+        return 0;
+
+    }
+
+    for (int i = 2; i * i <= n; i++)
+
+    {
+
+        if (n % i == 0)               
+
+        {
+
+            return 0;
+
+        }
+
+    }
+
+    return 1;
+
+}
+
+int main(void)
+
+{
+
+    int count = 0;
+
+    for (int n = 1; n <= 100; n++)
+
+    {
+
+        if (is_prime(n))
+
+        {
+
+            count++;
+
+        }
+
+    }
+
+    printf("%d\n", count);
+
+    return 0;
+
+}
+
+**运行结果：**25。
+
+**解析：**1不是素数。从2到100逐个判断，若在2至其平方根之间找到整除因子，该数就不是素数，否则计数加1。只需检查到平方根，是因为 n=a×b 时，至少有一个因数不大于 √n。本题范围内 i*i 不会溢出。
+
+**核对要点：**排除1；包含2和100这两个边界；正确判断整除；最终素数个数为25。
+
+
+## **自定义函数实现字符串拼接**
+
+题目要求：不使用 strcat()。
+
+#include <stdio.h>
+
+char *my_strcat(char *dest, const char *src)
+
+{
+
+    char *p = dest;
+
+    while (*p != '\0')
+
+    {
+
+        p++;
+
+    }
+
+    while (*src != '\0')
+
+    {
+
+        *p = *src;
+
+        p++;
+
+        src++;
+
+    }
+
+    *p = '\0';
+
+    return dest;
+
+}
+
+int main(void)
+
+{
+
+    char a[100] = "Hello";
+
+    const char *b = " world";
+
+    my_strcat(a, b);
+
+    printf("%s\n", a);
+
+    return 0;
+
+}
+
+**运行结果：**Hello world。
+
+**解析：**先找到 dest 中原有的字符串结束符，再从这个位置依次复制 src 中的字符，最后补上新的空字符 \0。返回值保留目标字符串的起始地址。
+
+**使用前提：**dest 指向可写数组，容量至少为两个字符串长度之和再加1，且源和目标不重叠。本例 a[100] 容量足够；不能用指向字符串字面量的 char *a="Hello" 作为可写目标。
+
+**核对要点：**找到目标串末尾；逐字符复制；补写结束符；目标空间足够；不调用 strcat()。
